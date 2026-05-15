@@ -1,0 +1,157 @@
+require "sinatra"
+require_relative "database"
+require_relative "util"
+
+# This is ok, it is not directly public
+set :host_authorization, allow_if: ->(env) { true }
+
+before { content_type :json }
+
+# --- Helpers ---
+
+VALID_COLUMNS = Plushie.columns.map(&:to_s).freeze
+
+def find_plushie(iden)
+  if integer?(iden)
+    Plushie.first!(id: iden.to_i)
+  else
+    Plushie.first!(name: iden)
+  end
+end
+
+def validate_column!(col)
+  halt json_error(400, "Invalid column '#{col}'") unless VALID_COLUMNS.include?(col)
+  col.to_sym
+end
+
+def json_error(status_code, message, key: :error)
+  status status_code
+  { message: "Error", key => message }.to_json
+end
+
+def parse_body
+  request.body.rewind
+  JSON.parse(request.body.read)
+rescue JSON::ParserError
+  halt json_error(400, "Invalid JSON", key: :message)
+end
+
+# --- GET routes ---
+get "/" do
+  { message: "This is the plushie api", info: File.read("cheat.txt") }.to_json
+end
+
+get "/plushie" do
+  { message: "The /plushie endpint exists because Scotty wanted it" }.to_json
+end
+
+get "/all" do
+  { message: "Ok", plushies: Plushie.all.map(&:values) }.to_json
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+get "/count" do
+  { message: "Ok", count: Plushie.count }.to_json
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+get "/last_updated" do
+  last = Plushie.max(:updated_at)
+  halt json_error(404, "No plushies in table") if last.nil?
+  { message: "Ok", last_updated: last }.to_json
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+# More specific /column/count route must come before /column/:column/:iden
+get "/column/count/:column/:value" do
+  col = validate_column!(params["column"])
+  count = Plushie.where(col => params["value"]).count
+  { message: "Ok", column: col, value: params["value"], count: count }.to_json
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+get "/column/:column" do
+  col = validate_column!(params["column"])
+  values = Plushie.select(col).all.map { |p| p[col] }
+  { message: "Ok", column: col, values: values }.to_json
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+get "/column/:column/:iden" do
+  col = validate_column!(params["column"])
+  plushie = find_plushie(params["iden"])
+  { message: "Ok", column: col, value: plushie[col] }.to_json
+rescue Sequel::NoMatchingRow
+  json_error(404, "Plushie not found")
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+get "/plushie/:iden" do
+  plushie = find_plushie(params["iden"])
+  { message: "Ok", plushie: plushie.values }.to_json
+rescue Sequel::NoMatchingRow
+  json_error(404, "Plushie not found")
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+get "/plushie/:iden/:field" do
+  plushie = find_plushie(params["iden"])
+  field = params["field"].to_sym
+  halt json_error(404, "Field '#{field}' not found") unless plushie.values.key?(field)
+  plushie.values[field].to_json
+rescue Sequel::NoMatchingRow
+  json_error(404, "Plushie not found")
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+# --- DELETE / PUT / POST ---
+
+delete "/:iden" do
+  plushie = find_plushie(params["iden"])
+  plushie.delete
+  { message: "Ok", deleted: plushie.values }.to_json
+rescue Sequel::NoMatchingRow
+  json_error(404, "Plushie not found")
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+put "/:iden" do
+  payload = parse_body
+  plushie = find_plushie(params["iden"])
+  plushie.update(payload)
+  { message: "Ok", updated: plushie.reload.values }.to_json
+rescue Sequel::NoMatchingRow
+  json_error(404, "Plushie not found")
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+put "/:iden/:field" do
+  payload = parse_body
+  plushie = find_plushie(params["iden"])
+  field = params["field"].to_sym
+  halt json_error(400, "Field '#{field}' is not a valid column") unless Plushie.columns.include?(field)
+  plushie.update(field => payload["value"])
+  { message: "Ok", updated: plushie.reload.values }.to_json
+rescue Sequel::NoMatchingRow
+  json_error(404, "Plushie not found")
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+post "/" do
+  payload = parse_body
+  Plushie.create(payload)
+  { message: "Ok", added: payload }.to_json
+rescue StandardError => e
+  json_error(400, e.message)
+end

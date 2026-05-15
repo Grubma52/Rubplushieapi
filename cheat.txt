@@ -1,0 +1,16 @@
+GET /                              # shows this info
+GET /plushie                       # A reminder of love, cuteness and cozyness
+GET /all                           # get all plushies
+GET /count                         # total plushie count
+GET /last_updated                  # get time when table last updated
+GET /column/count/:column/:value   # count how often a value is in a certain column
+GET /column/:column                # get a certain column
+GET /column/:column/:iden          # info for a plushie in a certain column
+GET /plushie/:iden                 # get a certain plushie
+GET /plushie/:iden/:field          # info for a value of a certain plushie
+
+POST /:iden                        # Create a plushie
+DELETE /:iden                      # Delete a plushie
+
+PUT /:iden                         # Update a plushie
+PUT /:iden/:field                  # Update a value of a certain plushie
