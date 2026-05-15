@@ -5,7 +5,16 @@ require_relative "util"
 # This is ok, it is not directly public
 set :host_authorization, allow_if: ->(env) { true }
 
-before { content_type :json }
+before do
+  content_type :json
+  response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
+  response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+  response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+end
+
+options '*' do
+  200
+end
 
 # --- Helpers ---
 
