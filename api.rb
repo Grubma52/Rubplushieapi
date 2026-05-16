@@ -5,6 +5,10 @@ require_relative "util"
 # This is ok, it is not directly public
 set :host_authorization, allow_if: ->(env) { true }
 
+configure do
+  set :show_exceptions, false
+end
+
 before do
   content_type :json
   response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
@@ -14,6 +18,26 @@ end
 
 options '*' do
   200
+end
+
+not_found do
+  status 404
+
+  {
+    message: "Bad URL",
+    error: "The requested url does not exist..."
+  }.to_json
+end
+
+error do
+  status 500
+
+  e = env['sinatra.error']
+
+  {
+    message: "Oops, this error somehow slipped through the system",
+    error: e.message
+  }.to_json
 end
 
 # --- Helpers ---
@@ -119,6 +143,16 @@ rescue Sequel::NoMatchingRow
   json_error(404, "Plushie not found")
 rescue StandardError => e
   json_error(400, e.message)
+end
+
+get '/plushies.db' do
+  begin
+    content_type 'application/octet-stream'
+
+    File.binread './plushies.db'
+  rescue StandardError => e
+    json_error(400, e.message)
+  end
 end
 
 # --- DELETE / PUT / POST ---

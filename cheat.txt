@@ -8,6 +8,7 @@ GET /column/:column                # get a certain column
 GET /column/:column/:iden          # info for a plushie in a certain column
 GET /plushie/:iden                 # get a certain plushie
 GET /plushie/:iden/:field          # info for a value of a certain plushie
+GET /plushies.db                   # get entire db
 
 POST /:iden                        # Create a plushie
 DELETE /:iden                      # Delete a plushie
