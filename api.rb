@@ -92,7 +92,7 @@ end
 
 get "/last_updated" do
   last = Plushie.max(:updated_at)
-  halt json_error(404, "No plushies in table") if last.nil?
+  halt json_error(204, "No plushies in table") if last.nil?
   { message: "Ok", last_updated: last }.to_json
 rescue StandardError => e
   json_error(400, e.message)
@@ -120,7 +120,7 @@ get "/column/:column/:iden" do
   plushie = find_plushie(params["iden"])
   { message: "Ok", column: col, value: plushie[col] }.to_json
 rescue Sequel::NoMatchingRow
-  json_error(404, "Plushie not found")
+  json_error(204, "Plushie not found")
 rescue StandardError => e
   json_error(400, e.message)
 end
@@ -129,7 +129,7 @@ get "/plushie/:iden" do
   plushie = find_plushie(params["iden"])
   { message: "Ok", plushie: plushie.values }.to_json
 rescue Sequel::NoMatchingRow
-  json_error(404, "Plushie not found")
+  json_error(204, "Plushie not found")
 rescue StandardError => e
   json_error(400, e.message)
 end
@@ -137,10 +137,10 @@ end
 get "/plushie/:iden/:field" do
   plushie = find_plushie(params["iden"])
   field = params["field"].to_sym
-  halt json_error(404, "Field '#{field}' not found") unless plushie.values.key?(field)
+  halt json_error(204, "Field '#{field}' not found") unless plushie.values.key?(field)
   plushie.values[field].to_json
 rescue Sequel::NoMatchingRow
-  json_error(404, "Plushie not found")
+  json_error(204, "Plushie not found")
 rescue StandardError => e
   json_error(400, e.message)
 end
@@ -162,7 +162,7 @@ delete "/:iden" do
   plushie.delete
   { message: "Ok", deleted: plushie.values }.to_json
 rescue Sequel::NoMatchingRow
-  json_error(404, "Plushie not found")
+  json_error(204, "Plushie not found")
 rescue StandardError => e
   json_error(400, e.message)
 end
@@ -173,7 +173,7 @@ put "/:iden" do
   plushie.update(payload)
   { message: "Ok", updated: plushie.reload.values }.to_json
 rescue Sequel::NoMatchingRow
-  json_error(404, "Plushie not found")
+  json_error(204, "Plushie not found")
 rescue StandardError => e
   json_error(400, e.message)
 end
@@ -186,7 +186,7 @@ put "/:iden/:field" do
   plushie.update(field => payload["value"])
   { message: "Ok", updated: plushie.reload.values }.to_json
 rescue Sequel::NoMatchingRow
-  json_error(404, "Plushie not found")
+  json_error(204, "Plushie not found")
 rescue StandardError => e
   json_error(400, e.message)
 end
