@@ -57,16 +57,20 @@ def validate_column!(col)
   col.to_sym
 end
 
-def json_error(status_code, message, key: :error)
+def json_error(status_code, message)
   status status_code
-  { message: "Error", key => message }.to_json
+  { message: "Error", error: message }.to_json
+end
+
+def plushie_to_hash(p)
+  p.values.merge(owners: p.owners)
 end
 
 def parse_body
   request.body.rewind
   JSON.parse(request.body.read)
 rescue JSON::ParserError
-  halt json_error(400, "Invalid JSON", key: :message)
+  halt json_error(400, "Invalid JSON")
 end
 
 # --- GET routes ---
@@ -79,7 +83,7 @@ get "/plushie" do
 end
 
 get "/all" do
-  { message: "Ok", plushies: Plushie.all.map(&:values) }.to_json
+  { message: "Ok", plushies: Plushie.all.map { |p| plushie_to_hash(p) } }.to_json
 rescue StandardError => e
   json_error(400, e.message)
 end
@@ -108,7 +112,11 @@ get "/column/count/:column/:value" do
         when :integer then raw.to_i
         else raw
         end
-  count = Plushie.where(col => val).count
+  count = if col == :owners
+    Plushie.where(Sequel.lit("owners LIKE ?", "%\"#{val}\"%")).count
+  else
+    Plushie.where(col => val).count
+  end
   { message: "Ok", column: col, value: val, count: count }.to_json
 rescue StandardError => e
   json_error(400, e.message)
@@ -116,7 +124,7 @@ end
 
 get "/column/:column" do
   col = validate_column!(params["column"])
-  values = Plushie.select(col).all.map { |p| p[col] }
+  values = Plushie.select(col).all.map { |p| p.send(col) }
   { message: "Ok", column: col, values: values }.to_json
 rescue StandardError => e
   json_error(400, e.message)
@@ -125,7 +133,7 @@ end
 get "/column/:column/:iden" do
   col = validate_column!(params["column"])
   plushie = find_plushie(params["iden"])
-  { message: "Ok", column: col, value: plushie[col] }.to_json
+  { message: "Ok", column: col, value: plushie.send(col) }.to_json
 rescue Sequel::NoMatchingRow
   json_error(204, "Plushie not found")
 rescue StandardError => e
@@ -134,7 +142,7 @@ end
 
 get "/plushie/:iden" do
   plushie = find_plushie(params["iden"])
-  { message: "Ok", plushie: plushie.values }.to_json
+  { message: "Ok", plushie: plushie_to_hash(plushie) }.to_json
 rescue Sequel::NoMatchingRow
   json_error(204, "Plushie not found")
 rescue StandardError => e
@@ -145,7 +153,7 @@ get "/plushie/:iden/:field" do
   plushie = find_plushie(params["iden"])
   field = params["field"].to_sym
   halt json_error(204, "Field '#{field}' not found") unless plushie.values.key?(field)
-  plushie.values[field].to_json
+  plushie.send(field).to_json
 rescue Sequel::NoMatchingRow
   json_error(204, "Plushie not found")
 rescue StandardError => e
@@ -167,7 +175,7 @@ end
 delete "/:iden" do
   plushie = find_plushie(params["iden"])
   plushie.delete
-  { message: "Ok", deleted: plushie.values }.to_json
+  { message: "Ok", deleted: plushie_to_hash(plushie) }.to_json
 rescue Sequel::NoMatchingRow
   json_error(204, "Plushie not found")
 rescue StandardError => e
@@ -178,7 +186,7 @@ put "/:iden" do
   payload = parse_body
   plushie = find_plushie(params["iden"])
   plushie.update(payload)
-  { message: "Ok", updated: plushie.reload.values }.to_json
+  { message: "Ok", updated: plushie_to_hash(plushie.reload) }.to_json
 rescue Sequel::NoMatchingRow
   json_error(204, "Plushie not found")
 rescue StandardError => e
@@ -191,7 +199,7 @@ put "/:iden/:field" do
   field = params["field"].to_sym
   halt json_error(400, "Field '#{field}' is not a valid column") unless Plushie.columns.include?(field)
   plushie.update(field => payload["value"])
-  { message: "Ok", updated: plushie.reload.values }.to_json
+  { message: "Ok", updated: plushie_to_hash(plushie.reload) }.to_json
 rescue Sequel::NoMatchingRow
   json_error(204, "Plushie not found")
 rescue StandardError => e
