@@ -101,8 +101,15 @@ end
 # More specific /column/count route must come before /column/:column/:iden
 get "/column/count/:column/:value" do
   col = validate_column!(params["column"])
-  count = Plushie.where(col => params["value"]).count
-  { message: "Ok", column: col, value: params["value"], count: count }.to_json
+  raw = params["value"]
+  schema = Plushie.db_schema[col]
+  val = case schema[:type]
+        when :boolean then raw == "1"
+        when :integer then raw.to_i
+        else raw
+        end
+  count = Plushie.where(col => val).count
+  { message: "Ok", column: col, value: val, count: count }.to_json
 rescue StandardError => e
   json_error(400, e.message)
 end
