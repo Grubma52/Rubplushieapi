@@ -19,6 +19,14 @@ end
 class Plushie < Sequel::Model(:plushies)
   plugin :timestamps, update: :updated_at, update_on_create: true
 
+  def before_save
+    %i[name type].each do |field|
+      v = send(field)
+      raise ArgumentError, "#{field} cannot be empty" if v.nil? || v.to_s.strip.empty?
+    end
+    super
+  end
+
   OWNERS = [:Grubma, :Grubmi, :Mimi, :Alex, :Benni]
 
   def owners
