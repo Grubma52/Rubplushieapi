@@ -11,7 +11,19 @@ end
 
 before do
   content_type :json
-  response.headers['Access-Control-Allow-Origin'] = 'http://10.0.0.34:5173'
+
+  allowed_origins = [
+    'http://10.0.0.34:5173',
+    'https://grubma.grubmi.com',
+    'https://localhost:5173'
+  ]
+
+  origin = request.env['HTTP_ORIGIN']
+
+  if allowed_origins.include?(origin)
+    response.headers['Access-Control-Allow-Origin'] = origin
+  end
+
   response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
   response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
 end
