@@ -15,3 +15,4 @@ DELETE /:iden                      # Delete a plushie
 
 PUT /:iden                         # Update a plushie
 PUT /:iden/:field                  # Update a value of a certain plushie
+PUT /reorder/r/r                   # Reorder plushies: {"order": [id1, id2, ...]}

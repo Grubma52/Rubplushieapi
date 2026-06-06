@@ -95,7 +95,7 @@ get "/plushie" do
 end
 
 get "/all" do
-  { message: "Ok", plushies: Plushie.all.map { |p| plushie_to_hash(p) } }.to_json
+  { message: "Ok", plushies: Plushie.order(:position, :id).all.map { |p| plushie_to_hash(p) } }.to_json
 rescue StandardError => e
   json_error(400, e.message)
 end
@@ -183,6 +183,24 @@ get '/plushies.db' do
 end
 
 # --- DELETE / PUT / POST ---
+
+put "/reorder/r/r" do
+  data = parse_body
+  order = data["order"]
+  halt json_error(400, "order must be an array") unless order.is_a?(Array)
+
+  DB.transaction do
+    order.each_with_index do |id, idx|
+      plushie = find_plushie(id)
+      plushie.update(position: idx + 1)
+    end
+  end
+  { message: "Ok", reordered: true }.to_json
+rescue Sequel::NoMatchingRow
+  json_error(204, "Plushie not found")
+rescue StandardError => e
+  json_error(400, e.message)
+end
 
 delete "/:iden" do
   plushie = find_plushie(params["iden"])

@@ -16,8 +16,18 @@ DB.create_table? :plushies do
   DateTime :updated_at
 end
 
+unless DB.schema(:plushies).map(&:first).include?(:position)
+  DB.alter_table(:plushies) { add_column :position, Integer }
+  DB[:plushies].where(position: nil).update(position: Sequel[:id])
+end
+
 class Plushie < Sequel::Model(:plushies)
   plugin :timestamps, update: :updated_at, update_on_create: true
+
+  def before_create
+    self.position ||= (self.class.max(:position) || 0) + 1
+    super
+  end
 
   def before_save
     %i[name type].each do |field|
