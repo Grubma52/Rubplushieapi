@@ -79,7 +79,6 @@ def plushie_to_hash(p)
 end
 
 def parse_body
-  request.body.rewind
   JSON.parse(request.body.read)
 rescue JSON::ParserError
   halt json_error(400, "Invalid JSON")
