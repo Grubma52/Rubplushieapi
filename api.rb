@@ -7,6 +7,7 @@ set :host_authorization, allow_if: ->(env) { true }
 
 configure do
   set :show_exceptions, false
+  set :protection, except: [:json_csrf]
 end
 
 before do
