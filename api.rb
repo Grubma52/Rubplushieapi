@@ -76,7 +76,9 @@ def json_error(status_code, message)
 end
 
 def plushie_to_hash(p)
-  p.values.merge(owners: p.owners)
+  h = p.values.merge(owners: p.owners)
+  h[:'pic_positions'] = p.pic_positions
+  h
 end
 
 def parse_body
@@ -206,6 +208,26 @@ delete "/:iden" do
   plushie = find_plushie(params["iden"])
   plushie.delete
   { message: "Ok", deleted: plushie_to_hash(plushie) }.to_json
+rescue Sequel::NoMatchingRow
+  json_error(204, "Plushie not found")
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+get "/:iden/pic_positions" do
+  plushie = find_plushie(params["iden"])
+  { message: "Ok", pic_positions: plushie.pic_positions }.to_json
+rescue Sequel::NoMatchingRow
+  json_error(204, "Plushie not found")
+rescue StandardError => e
+  json_error(400, e.message)
+end
+
+put "/:iden/pic_positions" do
+  plushie = find_plushie(params["iden"])
+  payload = parse_body
+  plushie.update(pic_positions: payload["pic_positions"] || payload)
+  { message: "Ok", pic_positions: plushie.reload.pic_positions }.to_json
 rescue Sequel::NoMatchingRow
   json_error(204, "Plushie not found")
 rescue StandardError => e

@@ -12,13 +12,22 @@ DB.create_table? :plushies do
   TrueClass :admin?,   null: false
   Text     :owners
   TrueClass :missing?, null: false
-  TrueClass :core,     null: false
+  TrueClass 'core?',   null: false
+  Text     :pic_positions
   DateTime :updated_at
 end
 
 unless DB.schema(:plushies).map(&:first).include?(:position)
   DB.alter_table(:plushies) { add_column :position, Integer }
   DB[:plushies].where(position: nil).update(position: Sequel[:id])
+end
+
+if DB.schema(:plushies).map(&:first).include?(:core) && !DB.schema(:plushies).map(&:first).include?(:'core?')
+  DB.alter_table(:plushies) { rename_column :core, :'core?' }
+end
+
+unless DB.schema(:plushies).map(&:first).include?(:pic_positions)
+  DB.alter_table(:plushies) { add_column :pic_positions, :text }
 end
 
 class Plushie < Sequel::Model(:plushies)
@@ -35,6 +44,14 @@ class Plushie < Sequel::Model(:plushies)
       raise ArgumentError, "#{field} cannot be empty" if v.nil? || v.to_s.strip.empty?
     end
     super
+  end
+
+  def pic_positions
+    JSON.parse(super || "{}")
+  end
+
+  def pic_positions=(val)
+    super(val.is_a?(String) ? val : val.to_json)
   end
 
   OWNERS = [:Grubma, :Grubmi, :Mimi, :Alex, :Benni]
