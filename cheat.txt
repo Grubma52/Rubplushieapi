@@ -1,3 +1,8 @@
+API HELPERS
+
+info:
+:iden -> id or name
+
 GET /                              # shows this info
 GET /plushie                       # A reminder of love, cuteness and cozyness
 GET /all                           # get all plushies
@@ -10,9 +15,36 @@ GET /plushie/:iden                 # get a certain plushie
 GET /plushie/:iden/:field          # info for a value of a certain plushie
 GET /plushies.db                   # get entire db
 
-POST /:iden                        # Create a plushie
+POST /:iden                        # Create a plushie | example payload:
+{
+	"name": "Pudding",
+	"size": 2,
+	"type": "bear",
+	"location": "Bad",
+	"admin?": false,
+	"owners": ["Grubma"],
+	"missing?": false,
+	"core?": true
+}
+
 DELETE /:iden                      # Delete a plushie
 
-PUT /:iden                         # Update a plushie
-PUT /:iden/:field                  # Update a value of a certain plushie
-PUT /reorder/r/r                   # Reorder plushies: {"order": [id1, id2, ...]}
+PUT /:iden                         # Update a plushie | example payload:
+{
+	"name": "Neuname",
+	"location": "Couch"
+}
+
+PUT /:iden/:field                  # Update a value of a certain plushie | example payload:
+{ "value": "Küche" }
+
+PUT /:iden/pic_positions           # Update preview positions for certain plushie | example payload:
+{
+	"pic_positions": {
+		"1": [100, 200],
+		"2": [300, 400]
+	}
+}
+
+PUT /reorder/r/r                   # Reorder plushies | example payload:
+{"order": [3, 1, 2]}
